@@ -1,0 +1,2194 @@
+openapi: 3.0.0
+info:
+  title: DiscoverIT API
+  description: Node.js + MongoDB - DiscoverIT API with accounts and nagios monitor
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:70
+    description: Local development server
+  - url: http://169.59.166.94:70
+    description: cloud development server
+
+paths:
+  /accounts/authenticate:
+    post:
+      summary: Authenticate account credentials and return a JWT token and a cookie with a refresh token
+      description: Accounts must be verified before authenticating.
+      operationId: authenticate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: "jason@alphanetworks.mx"
+                password:
+                  type: string
+                  example: "pass123"
+              required:
+                - email
+                - password
+      responses:
+        "200":
+          description: Account details, a JWT access token and a refresh token cookie
+          headers:
+            Set-Cookie:
+              description: "`refreshToken`"
+              schema:
+                type: string
+                example: refreshToken=51872eca5efedcf424db4cf5afd16a9d00ad25b743a034c9c221afc85d18dcd5e4ad6e3f08607550; Path=/; Expires=Tue, 16 Jun 2020 09:14:17 GMT; HttpOnly
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "5eb12e197e06a76ccdefc121"
+                  firstName:
+                    type: string
+                    example: "Jason"
+                  lastName:
+                    type: string
+                    example: "Watmore"
+                  email:
+                    type: string
+                    example: "jason@example.com"
+                  role:
+                    type: string
+                    example: "Admin"
+                  created:
+                    type: string
+                    example: "2020-05-05T09:12:57.848Z"
+                  isVerified:
+                    type: boolean
+                    example: true
+                  jwtToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1ZWIxMmUxOTdlMDZhNzZjY2RlZmMxMjEiLCJpZCI6IjVlYjEyZTE5N2UwNmE3NmNjZGVmYzEyMSIsImlhdCI6MTU4ODc1ODE1N30.xR9H0STbFOpSkuGA9jHNZOJ6eS7umHHqKRhI807YT1Y"
+        "400":
+          description: The email or password is incorrect
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email or password is incorrect"
+  /accounts/refresh-token:
+    post:
+      summary: Use a refresh token to generate a new JWT token and a new refresh token
+      description: The refresh token is sent and returned via cookies.
+      operationId: refreshToken
+      parameters:
+        - in: cookie
+          name: refreshToken
+          description: The `refreshToken` cookie
+          schema:
+            type: string
+            example: 51872eca5efedcf424db4cf5afd16a9d00ad25b743a034c9c221afc85d18dcd5e4ad6e3f08607550
+      responses:
+        "200":
+          description: Account details, a JWT access token and a new refresh token cookie
+          headers:
+            Set-Cookie:
+              description: "`refreshToken`"
+              schema:
+                type: string
+                example: refreshToken=51872eca5efedcf424db4cf5afd16a9d00ad25b743a034c9c221afc85d18dcd5e4ad6e3f08607550; Path=/; Expires=Tue, 16 Jun 2020 09:14:17 GMT; HttpOnly
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "5eb12e197e06a76ccdefc121"
+                  title:
+                    type: string
+                    example: "Mr"
+                  firstName:
+                    type: string
+                    example: "Jason"
+                  lastName:
+                    type: string
+                    example: "Watmore"
+                  email:
+                    type: string
+                    example: "jason@example.com"
+                  role:
+                    type: string
+                    example: "Admin"
+                  created:
+                    type: string
+                    example: "2020-05-05T09:12:57.848Z"
+                  isVerified:
+                    type: boolean
+                    example: true
+                  jwtToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1ZWIxMmUxOTdlMDZhNzZjY2RlZmMxMjEiLCJpZCI6IjVlYjEyZTE5N2UwNmE3NmNjZGVmYzEyMSIsImlhdCI6MTU4ODc1ODE1N30.xR9H0STbFOpSkuGA9jHNZOJ6eS7umHHqKRhI807YT1Y"
+        "400":
+          description: The refresh token is invalid, revoked or expired
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid token"
+  /accounts/revoke-token:
+    post:
+      summary: Revoke a refresh token
+      description: Admin users can revoke the tokens of any account, regular users can only revoke their own tokens.
+      operationId: revokeToken
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: cookie
+          name: refreshToken
+          description: The refresh token can be sent in a cookie or the post body, if both are sent the token in the body is used.
+          schema:
+            type: string
+            example: 51872eca5efedcf424db4cf5afd16a9d00ad25b743a034c9c221afc85d18dcd5e4ad6e3f08607550
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: "51872eca5efedcf424db4cf5afd16a9d00ad25b743a034c9c221afc85d18dcd5e4ad6e3f08607550"
+      responses:
+        "200":
+          description: The refresh token was successfully revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Token revoked"
+        "400":
+          description: The refresh token is invalid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid token"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /accounts/register:
+    post:
+      summary: Register a new user account and send a verification email
+      description: The first account registered in the system is assigned the `Admin` role, other accounts are assigned the `User` role.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  example: "Jason"
+                lastName:
+                  type: string
+                  example: "Watmore"
+                email:
+                  type: string
+                  example: "jason@example.com"
+                password:
+                  type: string
+                  example: "pass123"
+                confirmPassword:
+                  type: string
+                  example: "pass123"
+                acceptTerms:
+                  type: boolean
+              required:
+                - firstName
+                - lastName
+                - email
+                - password
+                - confirmPassword
+                - acceptTerms
+      responses:
+        "200":
+          description: The registration request was successful and a verification email has been sent to the specified email address
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Registration successful, please check your email for verification instructions"
+  /accounts/verify-email:
+    post:
+      summary: Verify a new account with a verification token received by email after registration
+      operationId: verifyEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: "3c7f8d9c4cb348ff95a0b74a1452aa24fc9611bb76768bb9eafeeb826ddae2935f1880bc7713318f"
+              required:
+                - token
+      responses:
+        "200":
+          description: Verification was successful so you can now login to the account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification successful, you can now login"
+        "400":
+          description: Verification failed due to an invalid token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification failed"
+  /accounts/forgot-password:
+    post:
+      summary: Submit email address to reset the password on an account
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: "jason@example.com"
+              required:
+                - email
+      responses:
+        "200":
+          description: The request was received and an email has been sent to the specified address with password reset instructions (if the email address is associated with an account)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Please check your email for password reset instructions"
+  /accounts/validate-reset-token:
+    post:
+      summary: Validate the reset password token received by email after submitting to the /accounts/forgot-password route
+      operationId: validateResetToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: "3c7f8d9c4cb348ff95a0b74a1452aa24fc9611bb76768bb9eafeeb826ddae2935f1880bc7713318f"
+              required:
+                - token
+      responses:
+        "200":
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Token is valid"
+        "400":
+          description: Token is invalid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid token"
+  /accounts/reset-password:
+    post:
+      summary: Reset the password for an account
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: "3c7f8d9c4cb348ff95a0b74a1452aa24fc9611bb76768bb9eafeeb826ddae2935f1880bc7713318f"
+                password:
+                  type: string
+                  example: "newPass123"
+                confirmPassword:
+                  type: string
+                  example: "newPass123"
+              required:
+                - token
+                - password
+                - confirmPassword
+      responses:
+        "200":
+          description: Password reset was successful so you can now login to the account with the new password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset successful, you can now login"
+        "400":
+          description: Password reset failed due to an invalid token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid token"
+  /accounts:
+    get:
+      summary: Get a list of all accounts
+      description: Restricted to admin users.
+      operationId: getAllAccounts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: An array of all accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "5eb12e197e06a76ccdefc121"
+                    firstName:
+                      type: string
+                      example: "Jason"
+                    lastName:
+                      type: string
+                      example: "Watmore"
+                    email:
+                      type: string
+                      example: "jason@example.com"
+                    role:
+                      type: string
+                      example: "Admin"
+                    created:
+                      type: string
+                      example: "2020-05-05T09:12:57.848Z"
+                    updated:
+                      type: string
+                      example: "2020-05-08T03:11:21.553Z"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      summary: Create a new account
+      description: Restricted to admin users.
+      operationId: createAccount
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  example: "Jason"
+                lastName:
+                  type: string
+                  example: "Watmore"
+                email:
+                  type: string
+                  example: "jason@example.com"
+                password:
+                  type: string
+                  example: "pass123"
+                confirmPassword:
+                  type: string
+                  example: "pass123"
+                role:
+                  type: string
+                  enum: [Admin, User]
+              required:
+                - firstName
+                - lastName
+                - email
+                - password
+                - confirmPassword
+                - role
+      responses:
+        "200":
+          description: Account created successfully, verification is not required for accounts created with this endpoint. The details of the new account are returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "5eb12e197e06a76ccdefc121"
+                  title:
+                    type: string
+                    example: "Mr"
+                  firstName:
+                    type: string
+                    example: "Jason"
+                  lastName:
+                    type: string
+                    example: "Watmore"
+                  email:
+                    type: string
+                    example: "jason@example.com"
+                  role:
+                    type: string
+                    example: "Admin"
+                  created:
+                    type: string
+                    example: "2020-05-05T09:12:57.848Z"
+        "400":
+          description: Email is already registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email 'jason@example.com' is already registered"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /accounts/{id}:
+    parameters:
+      - in: path
+        name: id
+        description: Account id
+        required: true
+        example: "5eb12e197e06a76ccdefc121"
+        schema:
+          type: string
+    get:
+      summary: Get a single account by id
+      description: Admin users can access any account, regular users are restricted to their own account.
+      operationId: getAccountById
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "5eb12e197e06a76ccdefc121"
+                  firstName:
+                    type: string
+                    example: "Jason"
+                  lastName:
+                    type: string
+                    example: "Watmore"
+                  email:
+                    type: string
+                    example: "jason@example.com"
+                  role:
+                    type: string
+                    example: "Admin"
+                  created:
+                    type: string
+                    example: "2020-05-05T09:12:57.848Z"
+                  updated:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    put:
+      summary: Update an account
+      description: Admin users can update any account including role, regular users are restricted to their own account and cannot update role.
+      operationId: updateAccount
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "Mr"
+                firstName:
+                  type: string
+                  example: "Jason"
+                lastName:
+                  type: string
+                  example: "Watmore"
+                email:
+                  type: string
+                  example: "jason@example.com"
+                password:
+                  type: string
+                  example: "pass123"
+                confirmPassword:
+                  type: string
+                  example: "pass123"
+                role:
+                  type: string
+                  enum: [Admin, User]
+      responses:
+        "200":
+          description: Account updated successfully. The details of the updated account are returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "5eb12e197e06a76ccdefc121"
+                  title:
+                    type: string
+                    example: "Mr"
+                  firstName:
+                    type: string
+                    example: "Jason"
+                  lastName:
+                    type: string
+                    example: "Watmore"
+                  email:
+                    type: string
+                    example: "jason@example.com"
+                  role:
+                    type: string
+                    example: "Admin"
+                  created:
+                    type: string
+                    example: "2020-05-05T09:12:57.848Z"
+                  updated:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    delete:
+      summary: Delete an account
+      description: Admin users can delete any account, regular users are restricted to their own account.
+      operationId: deleteAccount
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Account deleted successfully"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+          
+  /alux/get-hosts:
+    get:
+      summary: get array of hosts data read from file
+      description: users can acces their hosts data
+      operationId: getHosts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hostname:
+                    type: string
+                    example: "localhost"
+                  status:
+                    type: string
+                    example: "ok"
+                  notification:
+                    type: number
+                    example: "0"
+                  acknowledged:
+                    type: number
+                    example: "0"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /alux/get-services:
+    get:
+      summary: get array of service data read from file
+      description: users can acces their service data
+      operationId: getServices
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hostname:
+                    type: string
+                    example: "localhost"
+                  serviceName:
+                    type: string
+                    example: "SSH"
+                  status:
+                    type: string
+                    example: "ok"
+                  attemps:
+                    type: string
+                    example: "1/4"
+                  duration:
+                    type: string
+                    example: "SSH OK - OpenSSH_8.2p1 Ubuntu-4ubuntu0.2 (protocol 2.0)"
+                  notification:
+                    type: number
+                    example: "0"
+                  acknowledged:
+                    type: number
+                    example: "0"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+          
+  /inventario:
+    get:
+      summary: get array of equipment in inventory
+      description: users can acces their inventory
+      operationId: getEquipment
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: "string"
+                    example: "xxxxxxxxxxxxxxxxx"
+                  Serial:
+                    type: string
+                    example: "xxxxxxxx"
+                  Brand:
+                    type: string
+                    example: "Alpha"
+                  City:
+                    type: string
+                    example: "street 000, CDMX, 01210"
+                  Contrato:
+                    type: string
+                    example: "xxxxxxx"
+                  Equipment:
+                    type: string
+                    example: "Server"
+                  Model:
+                    type: string
+                    example: "5000x"
+                  SLA:
+                    type: string
+                    example: "24x7xNBD"
+                  ServiceTag:
+                    type: string
+                    example: "nan"
+                  Start:
+                    type: string
+                    example: "12-05-21"
+                  end:
+                    type: string
+                    example: "12-05-22"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      summary: Create a new contract and equipment
+      description: Restricted to admin users.
+      operationId: createEquipment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Serial:
+                    type: string
+                    example: "xxxxxxxx"
+                Brand:
+                  type: string
+                  example: "Alpha"
+                City:
+                  type: string
+                  example: "street 000, CDMX, 01210"
+                Contrato:
+                  type: string
+                  example: "xxxxxxx"
+                Equipment:
+                  type: string
+                  example: "Server"
+                Model:
+                  type: string
+                  example: "5000x"
+                SLA:
+                    type: string
+                    example: "24x7xNBD"
+                ServiceTag:
+                    type: string
+                    example: "nan"
+                Start:
+                  type: string
+                  example: "12-05-21"
+                End:
+                  type: string
+                  example: "12-05-22"
+              required:
+                - Serial
+                - Brand
+                - City
+                - Contrato
+                - Equipment
+                - Model
+                - SLA
+                - ServiceTag
+                - Start
+                - End
+      responses:
+        "200":
+          description: Contract and equipment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Serial:
+                    type: string
+                    example: "xxxxxxxx"
+                  Brand:
+                    type: string
+                    example: "Alpha"
+                  City:
+                    type: string
+                    example: "street 000, CDMX, 01210"
+                  Contrato:
+                    type: string
+                    example: "xxxxxxx"
+                  Equipment:
+                    type: string
+                    example: "Server"
+                  Model:
+                    type: string
+                    example: "5000x"
+                  SLA:
+                      type: string
+                      example: "24x7xNBD"
+                  ServiceTag:
+                      type: string
+                      example: "nan"
+                  Start:
+                    type: string
+                    example: "12-05-21"
+                  End:
+                    type: string
+                    example: "12-05-22"
+        "400":
+          description: Serial number is already registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Serial number is already registered"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /inventario/{id}:
+    parameters:
+      - in: path
+        name: id
+        description: Equipment id
+        required: true
+        example: "5eb12e197e06a76ccdefc121"
+        schema:
+          type: string
+    get:
+      summary: Get a single equipment by id
+      description: get equipment by document id.
+      operationId: getEquipmentById
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: "string"
+                    example: "xxxxxxxxxxxxxxxxx"
+                  Serial:
+                    type: string
+                    example: "xxxxxxxx"
+                  Brand:
+                    type: string
+                    example: "Alpha"
+                  City:
+                    type: string
+                    example: "street 000, CDMX, 01210"
+                  Contrato:
+                    type: string
+                    example: "xxxxxxx"
+                  Equipment:
+                    type: string
+                    example: "Server"
+                  Model:
+                    type: string
+                    example: "5000x"
+                  SLA:
+                    type: string
+                    example: "24x7xNBD"
+                  ServiceTag:
+                    type: string
+                    example: "nan"
+                  Start:
+                    type: string
+                    example: "12-05-21"
+                  end:
+                    type: string
+                    example: "12-05-22"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    put:
+      summary: Update an account
+      description: Admin users can update any account including role, regular users are restricted to their own account and cannot update role.
+      operationId: updateEquipment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Serial:
+                  type: string
+                  example: "xxxxxxxx"
+                Brand:
+                  type: string
+                  example: "Alpha"
+                City:
+                  type: string
+                  example: "street 000, CDMX, 01210"
+                Contrato:
+                  type: string
+                  example: "xxxxxxx"
+                Equipment:
+                  type: string
+                  example: "Server"
+                Model:
+                  type: string
+                  example: "5000x"
+                SLA:
+                  type: string
+                  example: "24x7xNBD"
+                ServiceTag:
+                  type: string
+                  example: "nan"
+                Start:
+                  type: string
+                  example: "12-05-21"
+                end:
+                  type: string
+                  example: "12-05-22"
+      responses:
+        "200":
+          description: Account updated successfully. The details of the updated account are returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Serial:
+                    type: string
+                    example: "xxxxxxxx"
+                  Brand:
+                    type: string
+                    example: "Alpha"
+                  City:
+                    type: string
+                    example: "street 000, CDMX, 01210"
+                  Contrato:
+                    type: string
+                    example: "xxxxxxx"
+                  Equipment:
+                    type: string
+                    example: "Server"
+                  Model:
+                    type: string
+                    example: "5000x"
+                  SLA:
+                    type: string
+                    example: "24x7xNBD"
+                  ServiceTag:
+                    type: string
+                    example: "nan"
+                  Start:
+                    type: string
+                    example: "12-05-21"
+                  end:
+                    type: string
+                    example: "12-05-22"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    delete:
+      summary: Delete an account
+      description: Admin users can delete any account, regular users are restricted to their own account.
+      operationId: deleteEquipment
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Item deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Item deleted successfully"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /inventario/{id}/{status}:
+    parameters:
+      - in: path
+        name: id
+        description: Equipment id
+        required: true
+        example: "5eb12e197e06a76ccdefc121"
+        schema:
+          type: string
+      - in: path
+        name: status
+        description: Device Status
+        required: true
+        example: "Paused"
+        schema:
+          type: string
+    put:
+      summary: Update a device status
+      description: Admin users can update any device status, regular users are restricted and cannot update status.
+      operationId: updateEquipmentStatus
+      security:
+        - bearerAuth: []
+      
+      responses:
+        "200":
+          description: Account updated successfully. The details of the updated account are returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Serial:
+                    type: string
+                    example: "xxxxxxxx"
+                  Brand:
+                    type: string
+                    example: "Alpha"
+                  Address:
+                    type: string
+                    example: "street 000, CDMX, 01210"
+                  City:
+                    type: string
+                    example: "CDMX"
+                  Contrato:
+                    type: string
+                    example: "xxxxxxx"
+                  Equipment:
+                    type: string
+                    example: "Server"
+                  Model:
+                    type: string
+                    example: "5000x"
+                  SLA:
+                    type: string
+                    example: "24x7xNBD"
+                  ServiceTag:
+                    type: string
+                    example: "nan"
+                  Start:
+                    type: string
+                    example: "12-05-21"
+                  End:
+                    type: string
+                    example: "12-05-22"
+                  Status:
+                    type: string
+                    example: "Active"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+          
+  /alarms:
+    get:
+      summary: get array of alarms
+      description: get an array of alarm data
+      operationId: getAlarms
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified alarm
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  time:
+                    type: string
+                    example: '2021-08-23T17:19:26.717Z'
+                  duration:
+                    type: string
+                    example: ''
+                  alarmType:
+                    type: string
+                    example: 'Service Alarm'
+                  hostname:
+                    type: string
+                    example: "localhost"
+                  serviceName:
+                    type: string
+                    example: "SSH"
+                  status:
+                    type: string
+                    example: "ok"
+                  pluginOutput:
+                    type: string
+                    example: "No output"
+                  
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /alarms/{id}:
+    parameters:
+      - in: path
+        name: id
+        description: Alarm id
+        required: true
+        example: "5eb12e197e06a76ccdefc121"
+        schema:
+          type: string
+    get:
+      summary: get alarm
+      description: get an alarm data
+      operationId: getAlarmsById
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified alarm
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  time:
+                    type: string
+                    example: '2021-08-23T17:19:26.717Z'
+                  duration:
+                    type: string
+                    example: ''
+                  alarmType:
+                    type: string
+                    example: 'Service Alarm'
+                  hostname:
+                    type: string
+                    example: "localhost"
+                  serviceName:
+                    type: string
+                    example: "SSH"
+                  status:
+                    type: string
+                    example: "ok"
+                  pluginOutput:
+                    type: string
+                    example: "No output"
+                  
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+          
+    put:
+      summary: Update an alarm
+      description: admin user can update an alarm, does not work at the moment
+      operationId: updateAlarmA
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                  time:
+                    type: string
+                    example: '2021-08-23T17:19:26.717Z'
+                  duration:
+                    type: string
+                    example: ''
+                  alarmType:
+                    type: string
+                    example: 'Service Alarm'
+                  hostname:
+                    type: string
+                    example: "localhost"
+                  serviceName:
+                    type: string
+                    example: "SSH"
+                  status:
+                    type: string
+                    example: "ok"
+                  pluginOutput:
+                    type: string
+                    example: "No output"
+      responses:
+        "200":
+          description: alarm updated successfully. The details of the updated alarm are returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  time:
+                    type: string
+                    example: '2021-08-23T17:19:26.717Z'
+                  duration:
+                    type: string
+                    example: ''
+                  alarmType:
+                    type: string
+                    example: 'Service Alarm'
+                  hostname:
+                    type: string
+                    example: "localhost"
+                  serviceName:
+                    type: string
+                    example: "SSH"
+                  status:
+                    type: string
+                    example: "ok"
+                  pluginOutput:
+                    type: string
+                    example: "No output"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /alarms/host/{hostName}:
+    parameters:
+        - in: path
+          name: hostName
+          description: Alarm hostname
+          required: true
+          example: "localhost"
+          schema:
+            type: string
+    get:
+      summary: get alarm
+      description: get an alarm data
+      operationId: getAlarmsByHost
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified alarm
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  time:
+                    type: string
+                    example: '2021-08-23T17:19:26.717Z'
+                  duration:
+                    type: string
+                    example: ''
+                  alarmType:
+                    type: string
+                    example: 'Service Alarm'
+                  hostname:
+                    type: string
+                    example: "localhost"
+                  serviceName:
+                    type: string
+                    example: "SSH"
+                  status:
+                    type: string
+                    example: "ok"
+                  pluginOutput:
+                    type: string
+                    example: "No output"
+                  
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /alarms/service/{serviceName}:
+    parameters:
+        - in: path
+          name: serviceName
+          description: Alarm service Name
+          required: true
+          example: "SSH"
+          schema:
+            type: string
+    get:
+      summary: get alarm
+      description: get an alarm data
+      operationId: getAlarmsByService
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified alarm
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  time:
+                    type: string
+                    example: '2021-08-23T17:19:26.717Z'
+                  duration:
+                    type: string
+                    example: ''
+                  alarmType:
+                    type: string
+                    example: 'Service Alarm'
+                  hostname:
+                    type: string
+                    example: "localhost"
+                  serviceName:
+                    type: string
+                    example: "SSH"
+                  status:
+                    type: string
+                    example: "ok"
+                  pluginOutput:
+                    type: string
+                    example: "No output"
+                  
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /alarms/status/{state}:
+    parameters:
+        - in: path
+          name: state
+          description: Alarm state
+          required: true
+          example: "ok"
+          schema:
+            type: string
+    get:
+      summary: get alarm
+      description: get an alarm data
+      operationId: getAlarmsByState
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified alarm
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  time:
+                    type: string
+                    example: '2021-08-23T17:19:26.717Z'
+                  duration:
+                    type: string
+                    example: ''
+                  alarmType:
+                    type: string
+                    example: 'Service Alarm'
+                  hostname:
+                    type: string
+                    example: "localhost"
+                  serviceName:
+                    type: string
+                    example: "SSH"
+                  status:
+                    type: string
+                    example: "ok"
+                  pluginOutput:
+                    type: string
+                    example: "No output"
+                  
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"  
+  
+  /tickets:
+    get:
+      summary: get array of all tickets
+      description: users can see tickets
+      operationId: getTickets
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: list of tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: "string"
+                    example: "xxxxxxxxxxxxxxxxx"
+                  ticketID:
+                    type: string
+                    example: "client-support-srv-1"
+                  equipment:
+                    type: string
+                    example: "server"
+                  model:
+                    type: string
+                    example: "5000x"
+                  title:
+                    type: string
+                    example: "soporte equipo"
+                  description:
+                    type: string
+                    example: "falla en disco"
+                  severity:
+                    type: string
+                    example: "critico"
+                  client:
+                    type: string
+                    example: "virwo"
+                  issueType:  
+                    type: string
+                    example: "hardware"
+                  userName:  
+                    type: string
+                    example: "Juan Escotia"
+                  contract:  
+                    type: string
+                    example: "p-226845"
+                  email:  
+                    type: string
+                    example: "juan.escotia@virwo.com"
+                  telephone:  
+                    type: string
+                    example: "55555555555"
+                  equipmentSerial:  
+                    type: string
+                    example: "58dfa5d"
+                  clientEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket"
+                  assignedSupportOperator:  
+                    type: string
+                    example: "barabas"  
+                  status:  
+                    type: string
+                    example: "pending"
+                  created:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  responseComments:  
+                    type: string
+                    example: "barabas"
+                  responseDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  closeDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  supportEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket-support"  
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      summary: Create a new contract and equipment
+      description: Restricted to admin users.
+      operationId: createTicket
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                  equipment:
+                    type: string
+                    example: "server"
+                  model:
+                    type: string
+                    example: "5000x"
+                  title:
+                    type: string
+                    example: "soporte equipo"
+                  description:
+                    type: string
+                    example: "falla en disco"
+                  severity:
+                    type: string
+                    example: "critico"
+                  client:
+                    type: string
+                    example: "virwo"
+                  issueType:  
+                    type: string
+                    example: "hardware"
+                  userName:  
+                    type: string
+                    example: "Juan Escotia"
+                  contract:  
+                    type: string
+                    example: "p-226845"
+                  email:  
+                    type: string
+                    example: "juan.escotia@virwo.com"
+                  telephone:  
+                    type: string
+                    example: "55555555555"
+                  equipmentSerial:  
+                    type: string
+                    example: "58dfa5d"
+                  clientEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket"
+            
+              required:
+                - equipment
+                - model
+                - title
+                - description
+                - severity
+                - client
+                - issueType
+                - userName
+                - contract
+                - End
+                - email
+                - telephone
+                - equipmentSerial
+      responses:
+        "200":
+          description: ticket created succesfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: "string"
+                    example: "xxxxxxxxxxxxxxxxx"
+                  ticketID:
+                    type: string
+                    example: "client-support-srv-1"
+                  equipment:
+                    type: string
+                    example: "server"
+                  model:
+                    type: string
+                    example: "5000x"
+                  title:
+                    type: string
+                    example: "soporte equipo"
+                  description:
+                    type: string
+                    example: "falla en disco"
+                  severity:
+                    type: string
+                    example: "critico"
+                  client:
+                    type: string
+                    example: "virwo"
+                  issueType:  
+                    type: string
+                    example: "hardware"
+                  userName:  
+                    type: string
+                    example: "Juan Escotia"
+                  contract:  
+                    type: string
+                    example: "p-226845"
+                  email:  
+                    type: string
+                    example: "juan.escotia@virwo.com"
+                  telephone:  
+                    type: string
+                    example: "55555555555"
+                  equipmentSerial:  
+                    type: string
+                    example: "58dfa5d"
+                  clientEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket"
+                  assignedSupportOperator:  
+                    type: string
+                    example: "barabas"  
+                  status:  
+                    type: string
+                    example: "pending"
+                  created:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  responseComments:  
+                    type: string
+                    example: "barabas"
+                  responseDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  closeDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  supportEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket-support"  
+        "400":
+          description: Serial number is already registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Serial number is already registered"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /tickets/{id}:
+    parameters:
+      - in: path
+        name: id
+        description: ticket object id
+        required: true
+        example: "5eb12e197e06a76ccdefc121"
+        schema:
+          type: string
+    get:
+      summary: get ticket information with id
+      description: get ticket infor
+      operationId: getTicketsById
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: "string"
+                    example: "xxxxxxxxxxxxxxxxx"
+                  ticketID:
+                    type: string
+                    example: "client-support-srv-1"
+                  equipment:
+                    type: string
+                    example: "server"
+                  model:
+                    type: string
+                    example: "5000x"
+                  title:
+                    type: string
+                    example: "soporte equipo"
+                  description:
+                    type: string
+                    example: "falla en disco"
+                  severity:
+                    type: string
+                    example: "critico"
+                  client:
+                    type: string
+                    example: "virwo"
+                  issueType:  
+                    type: string
+                    example: "hardware"
+                  userName:  
+                    type: string
+                    example: "Juan Escotia"
+                  contract:  
+                    type: string
+                    example: "p-226845"
+                  email:  
+                    type: string
+                    example: "juan.escotia@virwo.com"
+                  telephone:  
+                    type: string
+                    example: "55555555555"
+                  equipmentSerial:  
+                    type: string
+                    example: "58dfa5d"
+                  clientEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket"
+                  assignedSupportOperator:  
+                    type: string
+                    example: "barabas"  
+                  status:  
+                    type: string
+                    example: "pending"
+                  created:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  responseComments:  
+                    type: string
+                    example: "barabas"
+                  responseDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  closeDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  supportEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket-support"  
+                  
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+          
+    put:
+      summary: Update a ticket
+      description: admin user can update a ticket
+      operationId: updateTicket
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                  equipment:
+                    type: string
+                    example: "server"
+                  model:
+                    type: string
+                    example: "5000x"
+                  title:
+                    type: string
+                    example: "soporte equipo"
+                  description:
+                    type: string
+                    example: "falla en disco"
+                  severity:
+                    type: string
+                    example: "critico"
+                  client:
+                    type: string
+                    example: "virwo"
+                  issueType:  
+                    type: string
+                    example: "hardware"
+                  userName:  
+                    type: string
+                    example: "Juan Escotia"
+                  contract:  
+                    type: string
+                    example: "p-226845"
+                  email:  
+                    type: string
+                    example: "juan.escotia@virwo.com"
+                  telephone:  
+                    type: string
+                    example: "55555555555"
+                  equipmentSerial:  
+                    type: string
+                    example: "58dfa5d"
+                  clientEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket"
+                  assignedSupportOperator:  
+                    type: string
+                    example: "barabas"  
+                  status:  
+                    type: string
+                    example: "pending"
+                  responseComments:  
+                    type: string
+                    example: "barabas"
+                  responseDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  closeDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  supportEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket-support"  
+      responses:
+        "200":
+          description: ticket updated successfully. The details of the updated ticket are returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: "string"
+                    example: "xxxxxxxxxxxxxxxxx"
+                  ticketID:
+                    type: string
+                    example: "client-support-srv-1"
+                  equipment:
+                    type: string
+                    example: "server"
+                  model:
+                    type: string
+                    example: "5000x"
+                  title:
+                    type: string
+                    example: "soporte equipo"
+                  description:
+                    type: string
+                    example: "falla en disco"
+                  severity:
+                    type: string
+                    example: "critico"
+                  client:
+                    type: string
+                    example: "virwo"
+                  issueType:  
+                    type: string
+                    example: "hardware"
+                  userName:  
+                    type: string
+                    example: "Juan Escotia"
+                  contract:  
+                    type: string
+                    example: "p-226845"
+                  email:  
+                    type: string
+                    example: "juan.escotia@virwo.com"
+                  telephone:  
+                    type: string
+                    example: "55555555555"
+                  equipmentSerial:  
+                    type: string
+                    example: "58dfa5d"
+                  clientEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket"
+                  assignedSupportOperator:  
+                    type: string
+                    example: "barabas"  
+                  status:  
+                    type: string
+                    example: "pending"
+                  created:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  responseComments:  
+                    type: string
+                    example: "barabas"
+                  responseDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  closeDate:
+                    type: string
+                    example: "2020-05-08T03:11:21.553Z"
+                  supportEvidencePath:  
+                    type: string
+                    example: "/client/contract/ticket-support"  
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /knowledgeBase:
+    get:
+      summary: Get knowledge base tree
+      description: Users can get the tree created to access the knowledgeBase.
+      operationId: getKB
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Details of the specified account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: "Redes IP"
+                  type:
+                    type: string
+                    example: "DeviceFieldUse"
+                  children:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: "Balanceadores"
+                        type:
+                          type: string
+                          example: "Devicetype"
+                        children:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                example: "F5"
+                              type:
+                                type: string
+                                example: "DeviceBrand"
+                              children:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    name:
+                                      type: string
+                                      example: "BIG-IP 2000S"
+                                    type:
+                                      type: string
+                                      example: "Device"
+                                    children:
+                                      type: array
+                                      items:
+                                        type: object
+                                        properties:
+                                          name:
+                                            type: string
+                                            example: "Datasheet"
+                                          type:
+                                            type: string
+                                            example: "Filepath"
+                                          filepath:
+                                            type: string
+                                            example: "/ng2-pdf-viewer/assets/pdf-test.pdf"
+                  
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /knowledgeBase/{id}:
+    parameters:
+      - in: path
+        name: id
+        description: kb node object id
+        required: true
+        example: "5eb12e197e06a76ccdefc121"
+        schema:
+          type: string
+    delete:
+      summary: Update a ticket
+      description: admin user can update a ticket
+      operationId: deleteNode
+      security:
+        - bearerAuth: []
+      
+      responses:
+        "200":
+          description: Node deleted successfully. Returns total of nodes deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: "string"
+                    example: "2 nodes deleted successfully"
+
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+   
+  /knowledgeBase/{DeviceFieldUse}/{DeviceType}/{DeviceBrand}/{Device}:
+    parameters:
+      - in: path
+        name: DeviceFieldUse
+        description: Field use for device
+        required: true
+        example: "RedesIp"
+        schema:
+          type: string
+      - in: path
+        name: DeviceType
+        description: Type of device
+        required: true
+        example: "Switch"
+        schema:
+          type: string
+      - in: path
+        name: DeviceBrand
+        description: Brand of device
+        required: true
+        example: "F5"
+        schema:
+          type: string
+      - in: path
+        name: Device
+        description: Device model
+        required: true
+        example: "Switch"
+        schema:
+          type: string
+    post:
+      summary: Create a new knowledge base entry
+      description: Restricted to admin users.
+      operationId: createEntry
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                  name:  
+                    type: string
+                    example: "manual"
+                  type:  
+                    type: string
+                    example: "FilePath"
+                  fileUpload:
+                    type: string
+                    format: binary
+            
+              required:
+                - name
+                - type
+                - fileUpload
+      responses:
+        "200":
+          description: entry created succesfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: "string"
+                    example: "xxxxxxxxxxxxxxxxx"
+                  name:
+                    type: string
+                    example: "manual"
+                  type:
+                    type: string
+                    example: "Filepath"
+                  filePath:
+                    type: string
+                    example: "uploads/kb/ri/b/f6/BI2000/manual"
+                  ancestors:
+                    type: array
+                    items:
+                      type: string
+                  parent:
+                    type: string
+                    example: "kb,ri,b,f6,BI2000"
+        "400":
+          description: Serial number is already registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Serial number is already registered"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    
+    put:
+      summary: Update a new knowledge base entry
+      description: Restricted to admin users.
+      operationId: updateEntry
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                  name:  
+                    type: string
+                    example: "manual"
+                  type:  
+                    type: string
+                    example: "FilePath"
+                  fileUpload:
+                    type: string
+                    format: binary
+            
+              required:
+                - name
+                - type
+                - fileUpload
+      responses:
+        "200":
+          description: entry created succesfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: "string"
+                    example: "xxxxxxxxxxxxxxxxx"
+                  name:
+                    type: string
+                    example: "manual"
+                  type:
+                    type: string
+                    example: "Filepath"
+                  filePath:
+                    type: string
+                    example: "uploads/kb/ri/b/f6/BI2000/manual"
+                  ancestors:
+                    type: array
+                    items:
+                      type: string
+                  parent:
+                    type: string
+                    example: "kb,ri,b,f6,BI2000"
+        "400":
+          description: Serial number is already registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Serial number is already registered"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  
+          
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid, or the user does not have access to perform the action
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Unauthorized"
+    NotFoundError:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Not Found"

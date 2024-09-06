@@ -1,0 +1,44 @@
+{
+  "development": {
+    "username": "vic",
+    "password": "1234",
+    "database": "discoverold",
+    "host": "localhost",
+    "dialect": "mysql",
+    "port":3306,
+    "pool": {
+      "max": 50,
+      "min": 0,
+      "acquire": 60000,
+      "idle": 10000
+    }
+  },
+  "test": {
+    "username": "vic",
+    "password": "1234",
+    "database": "discoverold",
+    "host": "localhost",
+    "dialect": "mysql",
+    "port":3306,
+    "pool": {
+      "max": 50,
+      "min": 0,
+      "acquire": 60000,
+      "idle": 10000
+    }
+  },
+  "production": {
+    "username": "vic",
+    "password": "1234",
+    "database": "discoverold",
+    "host": "localhost",
+    "dialect": "mysql",
+    "port":3306,
+    "pool": {
+      "max": 50,
+      "min": 0,
+      "acquire": 60000,
+      "idle": 10000
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+    "name": "stationx_auth",
+    "version": "1.0.0",
+    "description": "NodeJS + MongoDB API for Email Sign Up with Verification, Authentication & Forgot Password",
+    "license": "",
+    "repository": {
+        "type": "git",
+        "url": ""
+    },
+    "scripts": {
+        "start": "node ./server.js",
+        "start:dev": "nodemon ./server.js",
+        "migrate:up": "npx sequelize-cli db:migrate",
+        "migrate:undo": "npx sequelize-cli db:migrate:undo"
+    },
+    "dependencies": {
+        "archiver-zip-encrypted": "^1.0.9",
+        "bcryptjs": "^2.4.3",
+        "body-parser": "^1.19.0",
+        "cookie-parser": "^1.4.5",
+        "cors": "^2.8.5",
+        "express": "^4.17.1",
+        "express-fileupload": "^1.2.1",
+        "express-jwt": "^6.0.0",
+        "joi": "^17.1.1",
+        "jsonwebtoken": "^8.5.1",
+        "mariadb": "^3.0.0",
+        "mongodb": "^3.5.7",
+        "mongoose": "^5.12.14",
+        "mysql2": "^2.3.3",
+        "node-file-encrypt": "^0.0.8",
+        "nodemailer": "^6.6.2",
+        "read-excel-file": "^5.3.4",
+        "request": "^2.88.2",
+        "rootpath": "^0.1.2",
+        "sequelize": "^6.21.0",
+        "swagger-ui-express": "^4.3.0",
+        "yamljs": "^0.3.0"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.19",
+        "sequelize-cli": "^6.4.1",
+        "swagger-autogen": "^2.11.0"
+    }
+}
