@@ -6,6 +6,6 @@ linecounter.*
 
 config/
 config/*
-/config
+/config/*
 config.json
 /config.json
