@@ -3,9 +3,9 @@ node_modules/
 uploads/
 linecounter.*
 .vscode
-
 config/
 config/*
 /config/*
 config.json
 /config.json
+../config.json
